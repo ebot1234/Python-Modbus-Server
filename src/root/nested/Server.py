@@ -1,54 +1,49 @@
-# --------------------------------------------------------------------------- #
-# import the various server implementations
-# --------------------------------------------------------------------------- #
-from pymodbus.server.sync import ModbusTcpServer
 
+from pymodbus.server.sync import ModbusTcpServer
 from pymodbus.device import ModbusDeviceIdentification
 from pymodbus.datastore import ModbusSequentialDataBlock
 from pymodbus.datastore import ModbusSlaveContext, ModbusServerContext
 from twisted.internet.task import LoopingCall
 from twisted.internet import reactor
-
+import socket
 import threading
-# --------------------------------------------------------------------------- #
-# configure the service logging
-# --------------------------------------------------------------------------- #
-#import logging
 
-#logging.basicConfig()
-#log = logging.getLogger()
-#log.setLevel(logging.DEBUG)
+
+def run_arduino_server():
+
+    sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+
+    server_address = ('127.0.0.1', 9050)
+    print("Server is on this IP: {}".format(server_address))
+    sock.bind(server_address)
+
+    while True:
+        data, address = sock.recvfrom(4096)
+    
+        print("Received")
+        print(data)
+    
+        if data:
+            sent = sock.sendto(data, address)
+            print("Sent")
+            print(data)
 
 
 def run_server():
-    # ----------------------------------------------------------------------- #
-    # initialize your data store
-    # ----------------------------------------------------------------------- #
-
-    #   di=block, co=block, hr=block, ir=block
-    #   block = ModbusSequentialDataBlock(0x00, [123]*0x20)
-    #   store = ModbusSlaveContext(hr=block)
 
     block1 = ModbusSequentialDataBlock(0x00, [0] * 0xFF)
-    block2 = ModbusSequentialDataBlock(0x00, [0] * 0xFF)
+    block2 = ModbusSequentialDataBlock(0x10, [0] * 0xFF)
     block3 = ModbusSequentialDataBlock(0x00, [0] * 0xFF)
     block4 = ModbusSequentialDataBlock(0x00, [0] * 0xFF)
+    store1 = ModbusSlaveContext(co= block3, di=block4, hr=block1, ir= block2)
     store2 = ModbusSlaveContext(co= block3, di= block4, hr=block1, ir=block2)
 
     slaves = {
-        0xff: store2
+        0xFF: store1
     }
 
     context = ModbusServerContext(slaves=slaves, single=False)
 
-    #   print(block1.values)
-    #   print(block2.values)
-
-    # ----------------------------------------------------------------------- #
-    # initialize the server information
-    # ----------------------------------------------------------------------- #
-    # If you don't set this or any fields, they are defaulted to empty strings.
-    # ----------------------------------------------------------------------- #
     identity = ModbusDeviceIdentification()
     identity.VendorName = 'Pymodbus'
     identity.ProductCode = 'PM'
@@ -57,27 +52,7 @@ def run_server():
     identity.ModelName = 'Pymodbus Server'
     identity.MajorMinorRevision = '1.0'
 
-    # ----------------------------------------------------------------------- #
-    # run the server you want
-    # ----------------------------------------------------------------------- #
-    # Tcp:
-    # server = StartTcpServer(context, identity=identity, address=('0.0.0.0', 255))
-
-    # start server in a separate thread so that is not blocking
-    # server.start_server()
-
-    # to access the blocks for slave 1
-    # store_1=server.context[1]
-
-    # to read from the block
-    # print("------")
-    # print(store_1.getValues(4,0,32))
-
-
-    # Type-2 Implementationt
-    interval = 2
-    # loop = LoopingCall(f=updatevalues, a=(context,))
-    # loop.start(time, now=True)
+    interval = 1
     server = ModbusTcpServer(context, identity=identity,
                             address=('0.0.0.0', 502))
     t = threading.Thread(target=server.serve_forever, daemon=True)
@@ -85,8 +60,11 @@ def run_server():
     loop = LoopingCall(f=updatevalues, a=server)
     loop.start(interval, now=True)
     reactor.run()
+    
+    
 
 def updatevalues(a):
+    
     print("------------START----------")
     read_coil = 1
     read_dI = 2
@@ -98,20 +76,27 @@ def updatevalues(a):
     write_mReg = 16 
     
     slave_id_1 = 0xff
-    address = 0x00
-    contxt = a.context[slave_id_1]
+    slave_id_2 = 0xff
     
-    holding_registers = contxt.getValues(read_hReg, address, count=12)
+    address = 0x00
+    CA = a.context[slave_id_1]
+    
+    holding_registers = CA.getValues(read_hReg, address, count=25)
     print("Holding Registers:")
     print(holding_registers)
-    coils = contxt.getValues(read_coil, address, count=13)
+    coils = CA.getValues(read_coil, address, count=12)
     print("Coils:")
     print(coils)
-    inputs = contxt.getValues(read_dI, address, count=25)
+    inputs = CA.getValues(read_dI, address, count=10)
     print("Inputs:")
     print(inputs)
     print("-------------END-------------")
-
+    
+    contxt = a.context[slave_id_1]
+    contxt.setValues(read_dI, 0x00, [1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 1, 0, 1, 1, 1, 0, 0, 0, 0, 0, 0])
+    contxt.setValues(write_mReg, 0x00, [0, 0, 0, 0, 0 ,0 , 26, 26, 26, 26, 26, 26])
+    
+    
 
 if __name__ == "__main__":
     run_server()
