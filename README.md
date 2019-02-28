@@ -1,3 +1,5 @@
+[![Build Status](https://travis-ci.org/ebot1234/Python-Modbus-Server.svg?branch=master)](https://travis-ci.org/ebot1234/Python-Modbus-Server)
+
 # Python-Modbus-Server
 
 # Setup
