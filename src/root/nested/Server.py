@@ -92,9 +92,9 @@ def updatevalues(a):
     print(inputs)
     print("-------------END-------------")
     
-    contxt = a.context[slave_id_1]
-    contxt.setValues(read_dI, 0x00, [1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 1, 0, 1, 1, 1, 0, 0, 0, 0, 0, 0])
-    contxt.setValues(write_mReg, 0x00, [0, 0, 0, 0, 0 ,0 , 26, 26, 26, 26, 26, 26])
+    #contxt = a.context[slave_id_1]
+    #contxt.setValues(read_dI, 0x00, [1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 1, 0, 1, 1, 1, 0, 0, 0, 0, 0, 0])
+    #contxt.setValues(write_mReg, 0x00, [0, 0, 0, 0, 0 ,0 , 26, 26, 26, 26, 26, 26])
     
     
 
